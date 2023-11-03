@@ -1,0 +1,41 @@
+bash
+
+#!/bin/bash
+
+
+
+# Set variables
+
+DB_NAME=${DATABASE_NAME}
+
+TABLE_NAME=${TABLE_NAME}
+
+PARTITION_COLUMN=${COLUMN_NAME}
+
+PARTITION_INTERVAL=${PARTITION_INTERVAL}
+
+
+
+# Create new partitions
+
+psql -d $DB_NAME -c "CREATE TABLE ${TABLE_NAME}_new PARTITION OF ${TABLE_NAME} FOR VALUES FROM ('2000-01-01') TO ('${PARTITION_INTERVAL}');"
+
+psql -d $DB_NAME -c "CREATE TABLE ${TABLE_NAME}_old PARTITION OF ${TABLE_NAME} FOR VALUES FROM ('${PARTITION_INTERVAL}') TO (MAXVALUE);"
+
+
+
+# Move data from old table to new partition
+
+psql -d $DB_NAME -c "INSERT INTO ${TABLE_NAME}_new SELECT * FROM ${TABLE_NAME} WHERE ${PARTITION_COLUMN} >= '2000-01-01' AND ${PARTITION_COLUMN} < '${PARTITION_INTERVAL}';"
+
+
+
+# Drop old table
+
+psql -d $DB_NAME -c "DROP TABLE ${TABLE_NAME};"
+
+
+
+# Rename new table to old table name
+
+psql -d $DB_NAME -c "ALTER TABLE ${TABLE_NAME}_new RENAME TO ${TABLE_NAME};"

@@ -1,0 +1,150 @@
+{
+  "name": "slow_performance_due_to_full_table_scans_on_large_postgresql_tables",
+  "description": "This incident type refers to situations where PostgreSQL queries are performing full table scans on large tables, leading to slow performance. This occurs when the database management system has to scan the entire table to locate the required data, which can be a time-consuming process. The issue can arise due to a variety of reasons, such as missing or outdated indexes, complex queries, or inefficient query design. To resolve the issue, optimizing the queries on large tables is necessary.",
+  "params": [
+    {
+      "name": "USERNAME",
+      "value": ""
+    },
+    {
+      "name": "PARTITION_INTERVAL",
+      "value": ""
+    },
+    {
+      "name": "QUERY",
+      "value": ""
+    },
+    {
+      "name": "DATABASE_NAME",
+      "value": ""
+    },
+    {
+      "name": "TABLE_NAME",
+      "value": ""
+    },
+    {
+      "name": "COLUMN_NAME",
+      "value": ""
+    },
+    {
+      "name": "INDEX_NAME",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Slow Performance due to Full Table Scans on Large PostgreSQL Tables\nThis incident type refers to situations where PostgreSQL queries are performing full table scans on large tables, leading to slow performance. This occurs when the database management system has to scan the entire table to locate the required data, which can be a time-consuming process. The issue can arise due to a variety of reasons, such as missing or outdated indexes, complex queries, or inefficient query design. To resolve the issue, optimizing the queries on large tables is necessary."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check PostgreSQL version"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `psql -U ${USERNAME} -c \"SELECT version();\"`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Get list of all tables in the database"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `psql -U ${USERNAME} -c \"\\dt\"`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check table size"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `psql -U ${USERNAME} -c \"SELECT pg_size_pretty(pg_total_relation_size('${TABLE_NAME}'))\"`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check if table has an index"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `psql -U ${USERNAME} -c \"SELECT indexname, indexdef FROM pg_indexes WHERE tablename='${TABLE_NAME}'\"`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check query plan for a specific query"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `psql -U ${USERNAME} -c \"EXPLAIN ANALYZE ${QUERY};\"`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check for long running queries"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `psql -U ${USERNAME} -c \"SELECT pid, age(clock_timestamp(), query_start), usename, query FROM pg_stat_activity WHERE datname='${DATABASE_NAME}' AND state='active' ORDER BY query_start desc;\"`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Adding appropriate indexes to the large tables can help the database management system locate the required data more efficiently, thereby avoiding full table scans."
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_create_index_script($DATABASE_NAME, $TABLE_NAME, $COLUMN_NAME, $INDEX_NAME)"
+    },
+    {
+      "name": "cell_16",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Partitioning large tables into smaller ones based on specific criteria, such as date or region, can help to reduce the amount of data scanned."
+    },
+    {
+      "name": "cell_17",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_partition_script($PARTITION_INTERVAL, $DATABASE_NAME, $TABLE_NAME, $COLUMN_NAME)"
+    }
+  ]
+}
